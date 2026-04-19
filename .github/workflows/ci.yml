@@ -30,7 +30,7 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install mlflow scikit-learn pandas
+        pip install mlflow scikit-learn pandas prometheus_client flask
 
     # Basic (2 pts): Membuat worflow CI yang dapat membuat model machine learning ketika trigger terpantik.
     - name: Train Model (MLflow Run)
@@ -61,7 +61,13 @@ jobs:
           echo "No changes in model artifacts."
         fi
 
-    # Advance (4 pts): Membuat Docker Image ke Docker Hub menggunakan mlflow build-docker.
+    # Advanced Testing: Run unit tests for model serving
+    - name: Run Model Serving Tests
+      run: |
+        cd MLProject
+        python -m pytest test_model_serving.py -v
+
+    # Advance (4 pts): Membuat Docker Image ke Docker Hub menggunakan custom Dockerfile.
     - name: Login to Docker Hub
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: docker/login-action@v3
@@ -73,8 +79,70 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         cd MLProject
-        # Membangun image dari folder saved_model
-        mlflow models build-docker -m saved_model -n ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
+        # Membangun image menggunakan custom Dockerfile
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest .
         
         # Push ke Docker Hub
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
+
+    # Validasi Docker Image
+    - name: Validate Docker Image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        # Pull image dari Docker Hub
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
+        
+        # Jalankan container dalam background
+        docker run -d -p 5000:5000 \
+          -e MODEL_PATH=/app/saved_model \
+          --name mlflow-server \
+          ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
+        
+        # Tunggu server siap
+        sleep 15
+        
+        # Validasi health endpoint
+        echo "Validasi health endpoint..."
+        HEALTH_STATUS=$(curl -s -w "%{http_code}" -o /dev/null http://localhost:5000/health || echo "000")
+        if [ "$HEALTH_STATUS" -eq 200 ]; then
+          echo "✓ Health endpoint berhasil diakses"
+        else
+          echo "✗ Health endpoint gagal diakses dengan status: $HEALTH_STATUS"
+          docker logs mlflow-server
+          exit 1
+        fi
+        
+        # Validasi metrics endpoint
+        echo "Validasi metrics endpoint..."
+        METRICS_STATUS=$(curl -s -w "%{http_code}" -o /dev/null http://localhost:5000/metrics || echo "000")
+        if [ "$METRICS_STATUS" -eq 200 ]; then
+          echo "✓ Metrics endpoint berhasil diakses"
+          # Cek apakah ada metrics yang di-expose
+          curl -s http://localhost:5000/metrics | head -20
+        else
+          echo "✗ Metrics endpoint gagal diakses dengan status: $METRICS_STATUS"
+          docker logs mlflow-server
+          exit 1
+        fi
+        
+        # Validasi predict endpoint dengan data dummy
+        echo "Validasi predict endpoint..."
+        PREDICT_STATUS=$(curl -s -w "%{http_code}" -o /dev/null -X POST \
+          -H "Content-Type: application/json" \
+          -d '{"features": [0.1, 0.2, 0.3, 0.4, 0.5]}' \
+          http://localhost:5000/predict || echo "000")
+        if [ "$PREDICT_STATUS" -eq 200 ]; then
+          echo "✓ Predict endpoint berhasil diakses"
+          curl -s -X POST -H "Content-Type: application/json" \
+            -d '{"features": [0.1, 0.2, 0.3, 0.4, 0.5]}' \
+            http://localhost:5000/predict
+        else
+          echo "✗ Predict endpoint gagal diakses dengan status: $PREDICT_STATUS"
+          docker logs mlflow-server
+          exit 1
+        fi
+        
+        # Cleanup
+        docker stop mlflow-server
+        docker rm mlflow-server
+        echo "✓ Semua validasi berhasil!"
