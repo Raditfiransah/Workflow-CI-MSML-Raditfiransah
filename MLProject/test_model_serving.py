@@ -13,7 +13,8 @@ class TestMLflowServer(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        from mlflow_server import MLflowServer, Metrics, Config
+        from mlflow_server import MLflowServer, Metrics
+        from config import Config
         
         self.server = MLflowServer()
         self.app = self.server.app.test_client()
