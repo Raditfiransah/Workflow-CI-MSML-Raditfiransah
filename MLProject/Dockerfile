@@ -16,11 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY mlflow_server.py .
 COPY config.py .
 
-# Create non-root user
-RUN useradd -m -s /bin/bash mlflow && \
-    chown -R mlflow:mlflow /app
-
 FROM python:3.11-slim as runtime
+
+# Create non-root user with explicit UID/GID to avoid conflicts
+RUN useradd -m -s /bin/bash -u 1000 mlflow && \
+    echo "mlflow user created with UID 1000" && \
+    id mlflow
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -31,14 +32,17 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy only necessary files from builder stage
-COPY --from=builder --chown=mlflow:mlflow /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder --chown=mlflow:mlflow /app/mlflow_server.py /app/
-COPY --from=builder --chown=mlflow:mlflow /app/config.py /app/
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /app/mlflow_server.py /app/
+COPY --from=builder /app/config.py /app/
+
+# Change ownership of app directory to mlflow user
+RUN chown -R mlflow:mlflow /app
 
 # Copy model artifacts (assuming they will be mounted or copied later)
 # COPY --chown=mlflow:mlflow saved_model /app/saved_model
 
-# Create non-root user
+# Switch to non-root user
 USER mlflow
 
 # Expose ports
