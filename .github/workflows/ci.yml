@@ -129,13 +129,13 @@ jobs:
         echo "Validasi predict endpoint..."
         PREDICT_STATUS=$(curl -s -w "%{http_code}" -o /dev/null -X POST \
           -H "Content-Type: application/json" \
-          -d '{"features": [0.1, 0.2, 0.3, 0.4, 0.5]}' \
-          http://localhost:5000/predict || echo "000")
+        -d '{"features": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}' \
+        http://localhost:5000/predict || echo "000")
         if [ "$PREDICT_STATUS" -eq 200 ]; then
-          echo "✓ Predict endpoint berhasil diakses"
-          curl -s -X POST -H "Content-Type: application/json" \
-            -d '{"features": [0.1, 0.2, 0.3, 0.4, 0.5]}' \
-            http://localhost:5000/predict
+        echo "✓ Predict endpoint berhasil diakses"
+        curl -s -X POST -H "Content-Type: application/json" \
+          -d '{"features": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}' \
+          http://localhost:5000/predict
         else
           echo "✗ Predict endpoint gagal diakses dengan status: $PREDICT_STATUS"
           docker logs mlflow-server

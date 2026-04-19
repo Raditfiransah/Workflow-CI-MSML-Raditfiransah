@@ -76,12 +76,17 @@ class MLflowServer:
                 # Make prediction
                 features = data['features']
                 
-                # Record feature distribution
+                # Record feature distribution (only for numeric values)
                 for i, feature_value in enumerate(features):
-                    Metrics.feature_histogram.labels(feature_name=f'feature_{i}').observe(feature_value)
+                    if isinstance(feature_value, (int, float)):
+                        Metrics.feature_histogram.labels(feature_name=f'feature_{i}').observe(feature_value)
                 
-                prediction = self.model.predict([features])[0]
-                probability = self.model.predict_proba([features])[0].tolist()
+                # Convert to numpy array for prediction to avoid feature name warnings
+                import numpy as np
+                features_array = np.array([features])
+                
+                prediction = self.model.predict(features_array)[0]
+                probability = self.model.predict_proba(features_array)[0].tolist()
                 
                 # Record latency
                 latency = self._get_timestamp() - start_time
@@ -105,6 +110,9 @@ class MLflowServer:
                 return jsonify(response_data)
                 
             except Exception as e:
+                import traceback
+                print(f"Prediction error: {str(e)}")
+                traceback.print_exc()
                 return jsonify({'error': str(e)}), 500
         
         # Root endpoint
