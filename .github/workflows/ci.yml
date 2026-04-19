@@ -73,7 +73,7 @@ jobs:
       run: |
         cd MLProject
         # Membangun image dari folder saved_model
-        mlflow models build-docker -m saved_model -n ${{ secrets.DOCKERHUB_USERNAME }}/credit-risk-model:latest
+        mlflow models build-docker -m saved_model -n ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
         
         # Push ke Docker Hub
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/credit-risk-model:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
