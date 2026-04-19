@@ -86,7 +86,7 @@ class MLflowServer:
                 Metrics.requests_latency.observe(latency)
                 
                 # Record prediction metrics
-                Metrics.predictions_total.labels(class=str(prediction)).inc()
+                Metrics.predictions_total.labels(class_=str(prediction)).inc()
                 # Note: For correct predictions, we'd need the true label which we don't have in serving
                 # This would typically be done in a feedback loop or separate validation endpoint
                 
