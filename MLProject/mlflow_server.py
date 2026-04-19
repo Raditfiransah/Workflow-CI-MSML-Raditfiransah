@@ -57,7 +57,7 @@ class MLflowServer:
             start_time = self._get_timestamp()
             
             try:
-                data = request.get_json()
+                data = request.get_json(silent=True)
                 if data is None:
                     return jsonify({'error': 'Invalid JSON'}), 400
                 if not data or 'features' not in data:
