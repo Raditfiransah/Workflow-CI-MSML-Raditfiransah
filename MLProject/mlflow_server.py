@@ -16,8 +16,8 @@ class Metrics:
     model_load_time = Gauge('model_load_time_seconds', 'Model load time in seconds')
     model_size = Gauge('model_size_bytes', 'Model size in bytes')
     model_status = Gauge('model_status', 'Model status (1=loaded, 0=error)', ['model_name'])
-    predictions_total = Counter('model_predictions_total', 'Total number of predictions', ['class'])
-    predictions_correct = Counter('model_predictions_correct_total', 'Number of correct predictions', ['class'])
+    predictions_total = Counter('model_predictions_total', 'Total number of predictions', ['prediction_class'])
+    predictions_correct = Counter('model_predictions_correct_total', 'Number of correct predictions', ['prediction_class'])
     feature_histogram = Histogram('model_feature_values', 'Distribution of feature values', ['feature_name'])
     uptime_seconds = Gauge('server_uptime_seconds', 'Server uptime in seconds')
     request_size_bytes = Histogram('model_request_size_bytes', 'Size of request payload in bytes')
@@ -93,7 +93,7 @@ class MLflowServer:
                 Metrics.requests_latency.observe(latency)
                 
                 # Record prediction metrics
-                Metrics.predictions_total.labels(class_=str(prediction)).inc()
+                Metrics.predictions_total.labels(prediction_class=str(prediction)).inc()
                 # Note: For correct predictions, we'd need the true label which we don't have in serving
                 # This would typically be done in a feedback loop or separate validation endpoint
                 
