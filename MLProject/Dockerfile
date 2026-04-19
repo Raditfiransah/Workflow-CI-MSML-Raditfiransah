@@ -18,10 +18,8 @@ COPY config.py .
 
 FROM python:3.11-slim as runtime
 
-# Create non-root user with explicit UID/GID to avoid conflicts
-RUN useradd -m -s /bin/bash -u 1000 mlflow && \
-    echo "mlflow user created with UID 1000" && \
-    id mlflow
+# Create non-root user (same as in builder stage if we want to preserve UID, but we don't have to)
+RUN useradd -m -s /bin/bash mlflow
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
