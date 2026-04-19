@@ -85,8 +85,15 @@ class MLflowServer:
                 import numpy as np
                 features_array = np.array([features])
                 
-                prediction = self.model.predict(features_array)[0]
-                probability = self.model.predict_proba(features_array)[0].tolist()
+                # Make prediction
+                result = self.model.predict(features_array)
+                prediction = result[0].item() if len(result) == 1 else result.tolist()
+                
+                # Get probability if available
+                probability = None
+                if hasattr(self.model, "predict_proba"):
+                    proba_result = self.model.predict_proba(features_array)
+                    probability = proba_result[0].tolist() if len(proba_result) == 1 else proba_result.tolist()
                 
                 # Record latency
                 latency = self._get_timestamp() - start_time
