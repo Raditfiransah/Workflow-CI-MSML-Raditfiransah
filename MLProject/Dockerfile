@@ -18,7 +18,7 @@ COPY config.py .
 
 FROM python:3.11-slim as runtime
 
-# Create non-root user (same as in builder stage if we want to preserve UID, but we don't have to)
+# Create non-root user
 RUN useradd -m -s /bin/bash mlflow
 
 # Install runtime dependencies
@@ -33,12 +33,13 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /app/mlflow_server.py /app/
 COPY --from=builder /app/config.py /app/
+# Copy model artifacts from the build context (they are present because MLflow run created them)
+COPY saved_model /app/saved_model
+# Verify the copy
+RUN ls -la /app/saved_model
 
 # Change ownership of app directory to mlflow user
 RUN chown -R mlflow:mlflow /app
-
-# Copy model artifacts (assuming they will be mounted or copied later)
-# COPY --chown=mlflow:mlflow saved_model /app/saved_model
 
 # Switch to non-root user
 USER mlflow

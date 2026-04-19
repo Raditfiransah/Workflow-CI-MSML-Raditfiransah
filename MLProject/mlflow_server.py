@@ -130,9 +130,13 @@ class MLflowServer:
             Metrics.model_load_time.set(load_time)
             Metrics.model_status.labels(model_name='credit_risk').set(1)
             
-            print(f"Model loaded successfully in {load_time:.2f} seconds")
+            print(f"Model loaded successfully from {self.config.MODEL_PATH} in {load_time:.2f} seconds")
             return True
             
+        except FileNotFoundError as e:
+            print(f"Model file not found at {self.config.MODEL_PATH}: {e}")
+            Metrics.model_status.labels(model_name='credit_risk').set(0)
+            return False
         except Exception as e:
             print(f"Error loading model: {e}")
             Metrics.model_status.labels(model_name='credit_risk').set(0)
