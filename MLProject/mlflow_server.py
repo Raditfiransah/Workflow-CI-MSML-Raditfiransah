@@ -58,6 +58,8 @@ class MLflowServer:
             
             try:
                 data = request.get_json()
+                if data is None:
+                    return jsonify({'error': 'Invalid JSON'}), 400
                 if not data or 'features' not in data:
                     return jsonify({'error': 'Invalid input data'}), 400
                 
