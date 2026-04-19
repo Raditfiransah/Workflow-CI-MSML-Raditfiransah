@@ -55,7 +55,8 @@ jobs:
         # Hanya commit jika ada perubahan
         if ! git diff --cached --quiet; then
           git commit -m "chore: update model artifacts via Git LFS [skip ci]"
-          git push origin main
+          # Push ke branch terpisah 'model-artifacts'
+          git push origin HEAD:model-artifacts --force
         else
           echo "No changes in model artifacts."
         fi
