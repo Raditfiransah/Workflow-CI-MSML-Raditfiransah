@@ -36,7 +36,7 @@ jobs:
     - name: Train Model (MLflow Run)
       run: |
         cd MLProject
-        mlflow run . --env-manager=local
+        mlflow run . --env-manager=local --experiment-name CreditRisk_Basic
 
     # Skilled (3 pts): Menyimpan artefak ke repositori (menggunakan Git LFS)
     - name: Commit and Push Model with Git LFS

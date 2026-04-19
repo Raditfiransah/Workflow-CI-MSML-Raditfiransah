@@ -39,9 +39,13 @@ y_test = test[TARGET]
 
 # ── MLflow setup dengan error handling ─────────────────────────────────────────
 try:
-    mlflow.set_experiment(EXPERIMENT)
+    # Jika dijalankan via 'mlflow run', experiment sudah ditentukan oleh CLI.
+    # set_experiment hanya dipanggil jika dijalankan sebagai script python biasa.
+    if "MLFLOW_RUN_ID" not in os.environ:
+        mlflow.set_experiment(EXPERIMENT)
+    
     mlflow.sklearn.autolog()
-    print(f"MLflow experiment: {EXPERIMENT}")
+    print(f"MLflow setup complete. Experiment: {EXPERIMENT}")
 except Exception as e:
     print(f"Warning: MLflow setup failed - {e}")
     print("Continuing without MLflow tracking...")
