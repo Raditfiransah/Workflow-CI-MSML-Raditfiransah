@@ -1,0 +1,7 @@
+name: "CreditRisk_Basic"
+
+conda_env: conda.yml
+
+entry_points:
+  main:
+    command: "python modeling.py"
