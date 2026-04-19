@@ -1,0 +1,80 @@
+name: Machine Learning CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  ml_workflow:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        lfs: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mlflow scikit-learn pandas
+
+    # Basic (2 pts): Membuat worflow CI yang dapat membuat model machine learning ketika trigger terpantik.
+    - name: Train Model (MLflow Run)
+      run: |
+        cd MLProject
+        mlflow run . --env-manager=local --experiment-name CreditRisk_Basic
+
+    # Skilled (3 pts): Menyimpan artefak ke repositori (menggunakan Git LFS)
+    - name: Commit and Push Model with Git LFS
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Inisialisasi Git LFS dan tracking (jika belum ada di .gitattributes)
+        git lfs install
+        
+        # Tambahkan file model yang dihasilkan
+        git add .gitattributes
+        git add MLProject/saved_model/
+        
+        # Hanya commit jika ada perubahan
+        if ! git diff --cached --quiet; then
+          git commit -m "chore: update model artifacts via Git LFS [skip ci]"
+          # Push ke branch terpisah 'model-artifacts'
+          git push origin HEAD:model-artifacts --force
+        else
+          echo "No changes in model artifacts."
+        fi
+
+    # Advance (4 pts): Membuat Docker Image ke Docker Hub menggunakan mlflow build-docker.
+    - name: Login to Docker Hub
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and Push Docker Image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        cd MLProject
+        # Membangun image dari folder saved_model
+        mlflow models build-docker -m saved_model -n ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
+        
+        # Push ke Docker Hub
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/workflow-ci-msml-raditfiransah:latest
